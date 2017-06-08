@@ -6,7 +6,7 @@ using System.Text;
 
 namespace RedisService
 {
-    public class RedisService
+    public class SessionFactory
     {
         public static IDatabase RedisDb { get; private set; }
         public static bool IsInitialize { get; private set; }

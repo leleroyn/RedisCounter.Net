@@ -70,7 +70,7 @@
   <ItemGroup>
     <Compile Include="Counter.cs" />
     <Compile Include="HashStore.cs" />
-    <Compile Include="RedisService.cs" />
+    <Compile Include="SessionFactory.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
