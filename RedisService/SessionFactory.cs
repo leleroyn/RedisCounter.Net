@@ -21,12 +21,12 @@ namespace RedisService
         {
             RedisDb = ConnectionMultiplexer.Connect(connectionStr).GetDatabase();
             IsInitialize = true;
-        }
+        }      
 
         internal static void Verify()
         {
             if (!IsInitialize || RedisDb == null)
-                throw new Exception("Redis计数器尚未初始化，请先执行Initialize");
+                throw new Exception("Redis服务未初始化，请先执行Initialize");
         }
 
     }

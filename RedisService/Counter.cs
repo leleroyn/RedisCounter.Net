@@ -13,14 +13,35 @@ namespace RedisService
     {
         static IDatabase _redisDb = SessionFactory.RedisDb;
 
-        public static void SetExpiry(string counterName, TimeSpan expiry)
+        /// <summary>
+        /// 初始化计数器（如果已存在，不修改原来计数器的任何状态，包括过期时间）
+        /// </summary>
+        /// <param name="table"></param>
+        /// <param name="expiry"></param>
+        public static void Init(string counterName, TimeSpan? expiry)
         {
             SessionFactory.Verify();
+            if (!_redisDb.KeyExists(counterName))
+            {
+                if (expiry.HasValue)
+                {
+                    _redisDb.KeyExpire(counterName, expiry);
+                }
+            }
+        }
+        public static void SetExpiry(string counterName, TimeSpan expiry )
+        {
+            SessionFactory.Verify();           
             _redisDb.KeyExpire(counterName, expiry);
+          
         }
         public static long Increment(string counterName, string field, long value = 1)
         {
             SessionFactory.Verify();
+            if (!_redisDb.KeyExists(counterName))
+            {
+                throw new Exception(string.Format("计数器:{0}不存在.", counterName));
+            }     
             long count = _redisDb.HashIncrement(counterName, field, value);
             return count;
         }
