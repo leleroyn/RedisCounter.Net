@@ -20,12 +20,13 @@ namespace RedisService
         /// <param name="expiry"></param>
         public static void Init(string counterName, TimeSpan? expiry)
         {
-            SessionFactory.Verify();
+            SessionFactory.Verify();            
             if (!_redisDb.KeyExists(counterName))
-            {
+            {              
                 if (expiry.HasValue)
                 {
-                    _redisDb.KeyExpire(counterName, expiry);
+                    string timeout = expiry.Value.ToString();
+                    _redisDb.StringSet(string.Join("_", counterName, "timeout"), timeout, expiry);
                 }
             }
         }
@@ -37,12 +38,15 @@ namespace RedisService
         }
         public static long Increment(string counterName, string field, long value = 1)
         {
-            SessionFactory.Verify();
-            if (!_redisDb.KeyExists(counterName))
-            {
-                throw new Exception(string.Format("计数器:{0}不存在.", counterName));
-            }     
+            SessionFactory.Verify();                            
             long count = _redisDb.HashIncrement(counterName, field, value);
+
+            string timeoutKey = string.Join("_", counterName, "timeout");  
+            if (_redisDb.KeyExists(timeoutKey))
+            {
+                SetExpiry(counterName, TimeSpan.Parse(_redisDb.StringGet(timeoutKey)));
+                _redisDb.KeyDelete(timeoutKey);
+            }
             return count;
         }
 

@@ -19,10 +19,11 @@ namespace RedisService
         {
             SessionFactory.Verify();
             if (!_redisDb.KeyExists(table))
-            {
+            {               
                 if (expiry.HasValue)
                 {
-                    _redisDb.KeyExpire(table, expiry);
+                    string timeout = expiry.Value.ToString();
+                    _redisDb.StringSet(string.Join("_", table, "timeout"), timeout, expiry);
                 }
             }
         }
@@ -41,29 +42,34 @@ namespace RedisService
         public static string[] GetValue(string table, string[] fields)
         {
             SessionFactory.Verify();
-            var parms =  fields.Select(o => (RedisValue)o).ToArray();
-            return _redisDb.HashGet(table, parms).Select(o=>o.ToString()).ToArray();
+            var parms = fields.Select(o => (RedisValue)o).ToArray();
+            return _redisDb.HashGet(table, parms).Select(o => o.ToString()).ToArray();
         }
 
         public static bool SetValue(string table, string field, string value)
         {
-            SessionFactory.Verify();
-            if (!_redisDb.KeyExists(table))
+            SessionFactory.Verify();        
+            var result = _redisDb.HashSet(table, field, value);
+            string timeoutKey = string.Join("_", table, "timeout");  
+            if (_redisDb.KeyExists(timeoutKey))
             {
-                throw new Exception(string.Format("哈希表:{0}不存在.", table));
-            }            
-            return _redisDb.HashSet(table, field, value);
+                SetExpiry(table, TimeSpan.Parse(_redisDb.StringGet(timeoutKey)));
+                _redisDb.KeyDelete(timeoutKey);
+            }
+            return result;
         }
 
         public static void SetValue(string table, Dictionary<string, string> hashEntry)
         {
-            SessionFactory.Verify();
-            if (!_redisDb.KeyExists(table))
-            {
-                throw new Exception(string.Format("哈希表:{0}不存在.", table));
-            } 
-            var entries  = hashEntry.Select(o => new HashEntry(o.Key, o.Value)).ToArray();
+            SessionFactory.Verify();          
+            var entries = hashEntry.Select(o => new HashEntry(o.Key, o.Value)).ToArray();
             _redisDb.HashSet(table, entries);
+            string timeoutKey = string.Join("_", table, "timeout");
+            if (_redisDb.KeyExists(timeoutKey))
+            {
+                SetExpiry(table, TimeSpan.Parse(_redisDb.StringGet(timeoutKey)));
+                _redisDb.KeyDelete(timeoutKey);
+            }
         }
     }
 }
