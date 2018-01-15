@@ -14,7 +14,7 @@ namespace RedisService
         private static volatile ConnectionMultiplexer _connection;
         private static readonly object lockObj = new object();
 
-        public static void CreateConnectionMultiplexer(ConnectionMultiplexer connection)
+        private static void CreateConnectionMultiplexer(ConnectionMultiplexer connection)
         {
             if (_connection == null)
             {
