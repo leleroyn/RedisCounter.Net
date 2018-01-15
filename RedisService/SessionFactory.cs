@@ -11,17 +11,49 @@ namespace RedisService
         public static IDatabase RedisDb { get; private set; }
         public static bool IsInitialize { get; private set; }
 
-        public static void Initialize(ConnectionMultiplexer connection)
+        private static volatile ConnectionMultiplexer _connection;
+        private static readonly object lockObj = new object();
+
+        public static void CreateConnectionMultiplexer(ConnectionMultiplexer connection)
         {
-            RedisDb = connection.GetDatabase();
+            if (_connection == null)
+            {
+                lock (lockObj)
+                {
+                    if (_connection == null)
+                    {
+                        _connection = connection;
+                    }
+                }
+            }
+        }
+
+        public static void Initialize(ConnectionMultiplexer connection, int dataBase)
+        {
+            CreateConnectionMultiplexer(connection);
+            RedisDb = connection.GetDatabase(dataBase);
             IsInitialize = true;
         }
 
         public static void Initialize(string connectionStr)
         {
-            RedisDb = ConnectionMultiplexer.Connect(connectionStr).GetDatabase();
-            IsInitialize = true;
-        }      
+            Initialize(connectionStr, 0);
+        }
+
+        public static void Initialize(string connectionStr, int dataBase)
+        {
+            Initialize(connectionStr, dataBase,null);
+        }
+
+        public static void Initialize(string connectionStr, int dataBase, EventHandler<ConnectionFailedEventArgs> connectionFailedEvent)
+        {
+            _connection = ConnectionMultiplexer.Connect(connectionStr);
+            if (connectionFailedEvent != null)
+            {
+                _connection.ConnectionFailed += connectionFailedEvent;
+            }
+            Initialize(_connection, dataBase);
+        }
 
         internal static void Verify()
         {
